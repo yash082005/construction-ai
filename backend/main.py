@@ -10,7 +10,8 @@ from pydantic import BaseModel
 
 load_dotenv()
 import llm, mocks  # noqa: E402
-from schemas import *  # noqa: E402,F401,F403
+from schemas import *  
+app = FastAPI(title="Multimodal Construction Intelligence Platform", version="1.0.0")  # noqa: E402,F401,F403
 
 app.add_middleware(
     CORSMiddleware,
