@@ -1,12 +1,14 @@
 // Single place that talks to FastAPI. Always resolves to {ok, data|error}.
+const BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
 async function call(path, options) {
   try {
-    const res = await fetch(`/api${path}`, options);
+    const res = await fetch(`${BASE}/api${path}`, options);
     const body = await res.json().catch(() => null);
     if (!res.ok) return { ok: false, error: body?.error || `Request failed (${res.status})`, detail: body?.detail || body?.detail?.[0]?.msg || "" };
     return { ok: true, data: body };
   } catch {
-    return { ok: false, error: "Cannot reach the server", detail: "Start the backend: uvicorn main:app --reload --port 8000" };
+    return { ok: false, error: "Cannot reach the server", detail: "The backend may be waking up. Wait a minute and try again." };
   }
 }
 export const postJson = (path, payload) =>
