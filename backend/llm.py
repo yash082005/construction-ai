@@ -67,6 +67,8 @@ async def generate(prompt: str, model: Type[T], mock: dict,
     f"AI service error {e.response.status_code}: "
     f"{e.response.text[:1000]}"
 ) from e
-            except httpx.HTTPError as e:
-                raise LLMError("Could not reach the AI service") from e
+           except httpx.HTTPError as e:
+    raise LLMError(
+        f"Could not reach the AI service: {type(e).__name__}: {str(e)}"
+    ) from e
     raise LLMError(last_err)
