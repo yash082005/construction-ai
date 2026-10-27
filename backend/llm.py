@@ -52,23 +52,31 @@ async def generate(prompt: str, model: Type[T], mock: dict,
     }
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent"
     last_err = ""
-    async with httpx.AsyncClient(timeout=90) as client:
-        for attempt in range(2):  # one retry if JSON fails validation
-            try:
-                r = await client.post(url, params={"key": key}, json=body)
-                r.raise_for_status()
-                text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-                return model.model_validate(_extract_json(text))
-            except (ValidationError, json.JSONDecodeError, KeyError, IndexError) as e:
-                last_err = f"AI returned an invalid structure: {str(e)[:200]}"
-                body["contents"][0]["parts"][0]["text"] += "\n\nYour previous reply was invalid. Return valid JSON matching the schema."
-            except httpx.HTTPStatusError as e:
-                raise LLMError(
-    f"AI service error {e.response.status_code}: "
-    f"{e.response.text[:1000]}"
-) from e
-           except httpx.HTTPError as e:
-    raise LLMError(
-        f"Could not reach the AI service: {type(e).__name__}: {str(e)}"
-    ) from e
+    ```python
+        async with httpx.AsyncClient(timeout=90) as client:
+            for attempt in range(2):  # one retry if JSON fails validation
+                try:
+                    r = await client.post(url, params={"key": key}, json=body)
+                    r.raise_for_status()
+                    text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+                    return model.model_validate(_extract_json(text))
+
+                except (ValidationError, json.JSONDecodeError, KeyError, IndexError) as e:
+                    last_err = f"AI returned an invalid structure: {str(e)[:200]}"
+                    body["contents"][0]["parts"][0]["text"] += (
+                        "\n\nYour previous reply was invalid. Return valid JSON matching the schema."
+                    )
+
+                except httpx.HTTPStatusError as e:
+                    raise LLMError(
+                        f"AI service error {e.response.status_code}: "
+                        f"{e.response.text[:1000]}"
+                    ) from e
+
+        except httpx.HTTPError as e:
+            raise LLMError(
+                f"Could not reach the AI service: {type(e).__name__}: {str(e)}"
+            ) from e
+
     raise LLMError(last_err)
+```
