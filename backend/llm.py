@@ -106,10 +106,17 @@ async def generate(
     last_err = "AI returned an invalid response."
 
     try:
-        async with httpx.AsyncClient(timeout=90) as client:
+        timeout = httpx.Timeout(
+            connect=20.0,
+            read=180.0,
+            write=30.0,
+            pool=20.0,
+        )
 
-            # Retry once if the response has invalid JSON or structure.
-            for attempt in range(2):
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            last_err = "Gemini request failed."
+
+            for attempt in range(3):
                 try:
                     response = await client.post(
                         url,
@@ -117,50 +124,77 @@ async def generate(
                         json=body,
                     )
 
-                    response.raise_for_status()
+                    if response.status_code in (429, 500, 502, 503, 504):
+                        if attempt < 2:
+                            await asyncio.sleep(2 ** (attempt + 1))
+                            continue
 
+                    response.raise_for_status()
                     response_data = response.json()
 
-                    text = (
-                        response_data["candidates"][0]
-                        ["content"]["parts"][0]["text"]
-                    )
-
-                    result = _extract_json(text)
-
-                    return model.model_validate(result)
-
-                except (
-                    ValidationError,
-                    json.JSONDecodeError,
-                    KeyError,
-                    IndexError,
-                    TypeError,
-                ) as e:
-
-                    last_err = (
-                        "AI returned an invalid structure: "
-                        f"{str(e)[:200]}"
-                    )
-
-                    if attempt == 0:
-                        body["contents"][0]["parts"][0]["text"] += (
-                            "\n\nYour previous reply was invalid. "
-                            "Return valid JSON matching the schema."
+                    candidates = response_data.get("candidates", [])
+                    if not candidates:
+                        raise LLMError(
+                            "Gemini returned no candidates. "
+                            f"Response: {str(response_data)[:1000]}"
                         )
 
-                except httpx.HTTPStatusError as e:
+                    parts = (
+                        candidates[0]
+                        .get("content", {})
+                        .get("parts", [])
+                    )
+
+                    text = "".join(
+                        part.get("text", "")
+                        for part in parts
+                        if isinstance(part, dict)
+                    )
+
+                    if not text.strip():
+                        raise LLMError("Gemini returned an empty response.")
+
+                    result = _extract_json(text)
+                    return model.model_validate(result)
+
+                except httpx.TimeoutException as exc:
+                    last_err = (
+                        f"Gemini request timed out: {type(exc).__name__}"
+                    )
+                    if attempt < 2:
+                        await asyncio.sleep(2 ** (attempt + 1))
+                        continue
+                    raise LLMError(last_err) from exc
+
+                except httpx.HTTPStatusError as exc:
+                    status = exc.response.status_code
+                    details = exc.response.text[:1000]
+
+                    if status in (429, 500, 502, 503, 504) and attempt < 2:
+                        last_err = f"Gemini API returned HTTP {status}"
+                        await asyncio.sleep(2 ** (attempt + 1))
+                        continue
+
                     raise LLMError(
-                        f"AI service error {e.response.status_code}: "
-                        f"{e.response.text[:1000]}"
-                    ) from e
+                        f"Gemini API error {status}: {details}"
+                    ) from exc
 
-    except httpx.HTTPError as e:
-        raise LLMError(
-            "Could not reach the AI service: "
-            f"{type(e).__name__}: {str(e)}"
-        ) from e
+                except httpx.HTTPError as exc:
+                    last_err = (
+                        f"Gemini connection error: {type(exc).__name__}"
+                    )
+                    if attempt < 2:
+                        await asyncio.sleep(2 ** (attempt + 1))
+                        continue
+                    raise LLMError(last_err) from exc
 
-    raise LLMError(last_err)
-   
-   
+                except LLMError:
+                    raise
+
+               
+
+       
+
+                   
+
+                 
