@@ -63,7 +63,10 @@ async def generate(prompt: str, model: Type[T], mock: dict,
                 last_err = f"AI returned an invalid structure: {str(e)[:200]}"
                 body["contents"][0]["parts"][0]["text"] += "\n\nYour previous reply was invalid. Return valid JSON matching the schema."
             except httpx.HTTPStatusError as e:
-                raise LLMError(f"AI service error {e.response.status_code}") from e
+                raise LLMError(
+    f"AI service error {e.response.status_code}: "
+    f"{e.response.text[:1000]}"
+) from e
             except httpx.HTTPError as e:
                 raise LLMError("Could not reach the AI service") from e
     raise LLMError(last_err)
