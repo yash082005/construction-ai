@@ -1,5 +1,4 @@
 // Single place that talks to FastAPI. Always resolves to {ok, data|error}.
-```javascript
 // Connect the React frontend to the deployed FastAPI backend
 const API_BASE_URL = "https://construction-ai-1.onrender.com";
 
