@@ -52,7 +52,6 @@ async def generate(prompt: str, model: Type[T], mock: dict,
     }
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent"
     last_err = ""
-    ```python
         async with httpx.AsyncClient(timeout=90) as client:
             for attempt in range(2):  # one retry if JSON fails validation
                 try:
