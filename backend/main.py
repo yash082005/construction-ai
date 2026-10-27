@@ -12,9 +12,16 @@ load_dotenv()
 import llm, mocks  # noqa: E402
 from schemas import *  # noqa: E402,F401,F403
 
-app = FastAPI(title="Multimodal Construction Intelligence Platform", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(","),
-                   allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://construction-ai-virid.vercel.app",
+        "http://localhost:5173"
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
 MAX_BYTES = int(float(os.getenv("MAX_IMAGE_MB", "8")) * 1024 * 1024)
