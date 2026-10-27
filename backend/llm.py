@@ -188,9 +188,7 @@ async def generate(
                         continue
                     raise LLMError(last_err) from exc
 
-                except LLMError:
-                    raise
-
+            
                
 
        
