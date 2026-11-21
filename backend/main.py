@@ -16,6 +16,7 @@ app = FastAPI(title="Multimodal Construction Intelligence Platform", version="1.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://construction-6ukunv1gs-construction-ai3.vercel.app",
         "https://construction-ai-virid.vercel.app",
         "http://localhost:5173"
     ],
