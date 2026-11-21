@@ -103,8 +103,8 @@ async def generate(
     )
 
     timeout = httpx.Timeout(
-        connect=20.0,
-        read=180.0,
+        connect=10.0,
+        read=45.0,
         write=30.0,
         pool=20.0,
     )
@@ -112,7 +112,7 @@ async def generate(
     last_err = "Gemini request failed."
 
     async with httpx.AsyncClient(timeout=timeout) as client:
-        for attempt in range(3):
+        for attempt in range(2):
             try:
                 response = await client.post(
                     url,
@@ -121,8 +121,8 @@ async def generate(
                 )
 
                 if response.status_code in (429, 500, 502, 503, 504):
-                    if attempt < 2:
-                        await asyncio.sleep(2 ** (attempt + 1))
+                    if attempt < 1:
+                        await asyncio.sleep( 1)
                         continue
 
                 response.raise_for_status()
@@ -163,8 +163,8 @@ async def generate(
                     f"Gemini request timed out: {type(exc).__name__}"
                 )
 
-                if attempt < 2:
-                    await asyncio.sleep(2 ** (attempt + 1))
+                if attempt < 1:
+                    await asyncio.sleep( 1)
                     continue
 
                 raise LLMError(last_err) from exc
@@ -175,7 +175,7 @@ async def generate(
 
                 if status in (429, 500, 502, 503, 504) and attempt < 2:
                     last_err = f"Gemini API returned HTTP {status}"
-                    await asyncio.sleep(2 ** (attempt + 1))
+                    await asyncio.sleep( 1)
                     continue
 
                 raise LLMError(
@@ -187,8 +187,8 @@ async def generate(
                     f"Gemini connection error: {type(exc).__name__}"
                 )
 
-                if attempt < 2:
-                    await asyncio.sleep(2 ** (attempt + 1))
+                if attempt < 1:
+                    await asyncio.sleep( 1)
                     continue
 
                 raise LLMError(last_err) from exc
@@ -205,7 +205,7 @@ async def generate(
                     f"{type(exc).__name__}: {exc}"
                 )
 
-                if attempt < 2:
+                if attempt < 1:
                     await asyncio.sleep(1)
                     continue
 
